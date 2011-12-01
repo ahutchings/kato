@@ -1,0 +1,157 @@
+#!/usr/bin/env node
+
+var optimist = require('optimist').demand(1).usage('Usage: $0 file_or_directory...'),
+    winston = require('winston').cli(),
+    watch = require('watch'),
+    neuron = require('neuron'),
+    exec = require('child_process').exec,
+    cliff = require('cliff'),
+    fs = require('fs'),
+    path = require('path'),
+    encoder = require('../lib/kato.js');
+
+var argv = optimist.boolean(['a','overwrite']).options({
+  a: {
+    description: 'Atomify mode. Pass in existing mp4 files to have their metadata refreshed and persisted.'
+  },
+  overwrite: {
+    description: 'Process files even if an existing outfile already exists. Overwrite existing outfile.'
+  }
+  //,
+  //n: {
+  //  description: 'Don\'t actually do anything. This is just a test run.'
+  //}
+}).argv;
+
+if (argv.h || argv.help) {
+  console.log([
+    'kato: Swiss army knife for converting video files to iTunes-friendly format',
+    ''
+  ].join('\n'));
+  console.log(optimist.help());
+  return;
+}
+
+var ignore = {};
+var valid_patterns = [/\.avi$/i,/\.mkv$/i];
+
+//cliff.putObject(argv);
+
+//
+// Create the manager and set the job.
+//
+var manager = new neuron.JobManager();
+manager.addJob('atomify', {
+  concurrency: 1,
+  work: function(file) {
+    var self = this;
+    encoder.atomify(file, function(file) {
+      self.finished = true;
+    });
+  }
+});
+manager.addJob('transcode', {
+  //dirname: __dirname,
+  concurrency: 1,
+  work: function (file) {
+    winston.info("processing: " + file);
+    var self = this;
+    var ofile = encoder.outFile(file);
+    ignore[ofile] = true;
+    exec('HandBrakeCLI -Z \'iPhone 4\' -i \"'+file+'\" -o \"'+ofile+'\"', function (error, stdout, stderr) {
+    //exec('ls -la ' + file, function (error, stdout, stderr) {
+      if (error) throw error;
+      
+      manager.enqueue('atomify',ofile);
+
+      //
+      // Finish the job, this will notify the manager.
+      //
+      self.finished = true;
+    });
+    //winston.info("metadata:");
+    //cliff.putObject(encoder.metadata);
+  }
+});
+manager.on('finish', function (job, worker) {
+  //winston.info("finished: " + worker.args[0]);
+  if(job.name == 'atomify') {
+    delete(ignore[encoder.outFile(worker.args[0])]);
+  } else if(job.name == 'transcode') {
+    delete(ignore[worker.args[0]]);
+  }
+});
+
+function queueUp( file ) {
+  //if (ignore[filename]) return; //redundant?
+  //else ignore[filename] = true;
+
+  fs.stat(file, function(err,stats){
+    winston.info("queueing: " + file);
+
+    var valid = false;
+    for( var x in valid_patterns) {
+      if( file.match( valid_patterns[x]) ) {
+        valid = true;
+        break;
+      }
+    }
+
+    if( valid ) {
+      path.exists(encoder.outFile(file), function (exists) {
+        if (!exists) manager.enqueue('transcode',file);
+        else if (argv.overwrite) {
+          winston.info("overwriting existing outfile");
+          manager.enqueue('transcode',file);
+        } else {
+          winston.info("skipped. outfile already exists.");
+          delete(ignore[file]);
+        }
+      });
+    } else {
+      winston.info("invalid file. doesn't match: " + valid_patterns);
+      delete(ignore[file]);
+    }
+    
+  });
+}
+
+function watchDir( watch_dir) {
+  watch.watchTree(watch_dir, function (file, curr, prev) {
+    if (ignore[file]) return;
+    else ignore[file] = true;
+  
+    if (typeof file == "object" && prev === null && curr === null) {
+      // Finished walking the tree
+      winston.info("watching " + watch_dir);
+    } else if (prev === null) {
+      // f is a new file
+      queueUp(file);
+    } else if (curr.nlink === 0) {
+      // f was removed
+    } else {
+      // f was changed
+      //queueUp(file);
+    }
+  });
+}
+
+function fileOrDir(path) {
+  fs.stat(path, function (err, stats) {
+    if (err) throw err;
+
+    if (stats.isFile()) queueUp(path);
+    else if (stats.isDirectory()) watchDir(path);
+    else winston.warn("Neither file nor directory: " + path);
+  });
+}
+
+for (var i in argv._) {
+  if (argv.a) {
+    winston.info("queueing up " + argv._[i]);
+    manager.enqueue('atomify',argv._[i]);
+    continue;
+  }
+  
+  fileOrDir(argv._[i]);
+}

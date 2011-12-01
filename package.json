@@ -1,0 +1,27 @@
+{
+  "name": "kato",
+  "description": "Swiss army knife for converting video files to iTunes-friendly format",
+  "version": "0.0.1",
+  "homepage": "http://github.com/saadiq/kato",
+  "author": "Saadiq Rodgers-King <saadiq@gmail.com>",
+  "dependencies": {
+    "optimist": "0.2.x",
+    "winston": "0.3.x",
+    "sqlite": ">= 1.0.4",
+    "watch": "0.3.x",
+    "neuron": "0.4.x",
+    "cliff": "0.1.x"
+  },
+  "bin": {
+    "kato": "./bin/kato"
+  },
+  "main": "./lib/kato.js",
+  "repository": {
+    "type": "git",
+    "url": "http://github.com/saadiq/kato.git"
+  },
+  "preferGlobal": true,
+  "engines": {
+    "node": ">= 0.6.0"
+  }
+}
