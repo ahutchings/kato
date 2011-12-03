@@ -8,6 +8,7 @@ var optimist = require('optimist').demand(1).usage('Usage: $0 file_or_directory.
     cliff = require('cliff'),
     fs = require('fs'),
     path = require('path'),
+    finder = require('findit'),
     encoder = require('../lib/kato.js');
 
 var argv = optimist.boolean(['a','overwrite']).options({
@@ -83,37 +84,32 @@ manager.on('finish', function (job, worker) {
 });
 
 function queueUp( file ) {
-  //if (ignore[filename]) return; //redundant?
-  //else ignore[filename] = true;
+  winston.info("queueing: " + file);
+  //cliff.putObject(file);
 
-  fs.stat(file, function(err,stats){
-    winston.info("queueing: " + file);
+  var valid = false;
+  for( var x in valid_patterns) {
+    if( file.match( valid_patterns[x]) ) {
+      valid = true;
+      break;
+    }
+  }
 
-    var valid = false;
-    for( var x in valid_patterns) {
-      if( file.match( valid_patterns[x]) ) {
-        valid = true;
-        break;
+  if( valid ) {
+    path.exists(encoder.outFile(file), function (exists) {
+      if (!exists) manager.enqueue('transcode',file);
+      else if (argv.overwrite) {
+        winston.info("overwriting existing outfile");
+        manager.enqueue('transcode',file);
+      } else {
+        winston.info("skipped. outfile already exists.");
+        delete(ignore[file]);
       }
-    }
-
-    if( valid ) {
-      path.exists(encoder.outFile(file), function (exists) {
-        if (!exists) manager.enqueue('transcode',file);
-        else if (argv.overwrite) {
-          winston.info("overwriting existing outfile");
-          manager.enqueue('transcode',file);
-        } else {
-          winston.info("skipped. outfile already exists.");
-          delete(ignore[file]);
-        }
-      });
-    } else {
-      winston.info("invalid file. doesn't match: " + valid_patterns);
-      delete(ignore[file]);
-    }
-    
-  });
+    });
+  } else {
+    winston.info("invalid file. doesn't match: " + valid_patterns);
+    delete(ignore[file]);
+  }
 }
 
 function watchDir( watch_dir) {
@@ -136,13 +132,25 @@ function watchDir( watch_dir) {
   });
 }
 
+function queueContents(dir) {
+  finder.find(dir, function (file) {
+    fs.stat(file, function (err, stats) {
+      if (err) throw err;
+      
+      if (stats.isFile()) queueUp(file.replace('//', '/'));
+    });
+  });
+}
+
 function fileOrDir(path) {
   fs.stat(path, function (err, stats) {
     if (err) throw err;
 
     if (stats.isFile()) queueUp(path);
-    else if (stats.isDirectory()) watchDir(path);
-    else winston.warn("Neither file nor directory: " + path);
+    else if (stats.isDirectory()) {
+      queueContents(path);
+      watchDir(path);
+    } else winston.warn("Neither file nor directory: " + path);
   });
 }
 

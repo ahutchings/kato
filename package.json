@@ -10,6 +10,7 @@
     "sqlite": ">= 1.0.4",
     "watch": "0.3.x",
     "neuron": "0.4.x",
+    "findit": ">= 0.1.1",
     "cliff": "0.1.x"
   },
   "bin": {
