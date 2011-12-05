@@ -75,16 +75,19 @@ manager.addJob('transcode', {
   }
 });
 manager.on('finish', function (job, worker) {
-  //winston.info("finished: " + worker.args[0]);
   if(job.name == 'atomify') {
-    delete(ignore[encoder.outFile(worker.args[0])]);
+    setTimeout(unignore, 3000, encoder.outFile(worker.args[0]));
   } else if(job.name == 'transcode') {
     delete(ignore[worker.args[0]]);
   }
 });
 
+function unignore(file) {
+  delete(ignore[file]);
+  //winston.info("unignore " + file);
+}
+
 function queueUp( file ) {
-  winston.info("queueing: " + file);
   //cliff.putObject(file);
 
   var valid = false;
@@ -96,6 +99,7 @@ function queueUp( file ) {
   }
 
   if( valid ) {
+    winston.info("queueing: " + file);
     path.exists(encoder.outFile(file), function (exists) {
       if (!exists) manager.enqueue('transcode',file);
       else if (argv.overwrite) {
@@ -107,7 +111,7 @@ function queueUp( file ) {
       }
     });
   } else {
-    winston.info("invalid file. doesn't match: " + valid_patterns);
+    //winston.info("invalid file. doesn't match: " + valid_patterns);
     delete(ignore[file]);
   }
 }
