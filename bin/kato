@@ -5,6 +5,7 @@ var optimist = require('optimist').demand(1).usage('Usage: $0 file_or_directory.
     watch = require('watch'),
     neuron = require('neuron'),
     exec = require('child_process').exec,
+    spawn = require('child_process').spawn,
     cliff = require('cliff'),
     fs = require('fs'),
     path = require('path'),
@@ -59,19 +60,30 @@ manager.addJob('transcode', {
     var self = this;
     var ofile = encoder.outFile(file);
     ignore[ofile] = true;
-    exec('HandBrakeCLI -Z \'iPhone 4\' -i \"'+file+'\" -o \"'+ofile+'\"', function (error, stdout, stderr) {
-    //exec('ls -la ' + file, function (error, stdout, stderr) {
-      if (error) throw error;
-      
+    hb = spawn('HandBrakeCLI', ['-Z', "'iPhone4'", '-i', file, '-o', ofile]);
+    hb.stdout.on('data', function (data) {
+      winston.info('stdout: ' + (String(data)).replace(/(\n|\r)+$/, ''));
+    });
+    
+    hb.stderr.on('data', function (data) {
+      console.log((String(data)).replace(/(\n|\r)+$/, ''));
+    });
+    
+    hb.on('exit', function (code) {
       manager.enqueue('atomify',ofile);
-
-      //
-      // Finish the job, this will notify the manager.
-      //
       self.finished = true;
     });
-    //winston.info("metadata:");
-    //cliff.putObject(encoder.metadata);
+    //exec('HandBrakeCLI -Z \'iPhone 4\' -i \"'+file+'\" -o \"'+ofile+'\"', function (error, stdout, stderr) {
+    ////exec('ls -la ' + file, function (error, stdout, stderr) {
+    //  if (error) throw error;
+    //  
+    //  manager.enqueue('atomify',ofile);
+    //
+    //  //
+    //  // Finish the job, this will notify the manager.
+    //  //
+    //  self.finished = true;
+    //});
   }
 });
 manager.on('finish', function (job, worker) {
