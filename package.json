@@ -7,10 +7,10 @@
   "dependencies": {
     "optimist": "0.2.x",
     "winston": "0.3.x",
-    "sqlite3": "2.0.x",
+    "sqlite3": ">=2.0.x",
     "watch": "0.3.x",
     "neuron": "0.4.x",
-    "findit": ">= 0.1.1",
+    "findit": ">=0.1.1",
     "cliff": "0.1.x"
   },
   "bin": {
