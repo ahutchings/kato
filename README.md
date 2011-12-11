@@ -1,6 +1,6 @@
 # Install
 
-Kato works with [Sick Beard](http://sickbeard.com/install.html) for tv shows and [CouchPotato](http://couchpotatoapp.com/) for movies. Both of these apps use [Sabnzbd](http://sabnzbd.org/) for downloading from usenet.
+Kato works with [Sick Beard](http://sickbeard.com/install.html) ([binaries](http://sickbeard.hostingsociety.com/) also available) for tv shows and [CouchPotato](http://couchpotatoapp.com/) for movies. Both of these apps use [Sabnzbd](http://sabnzbd.org/) for downloading from usenet.
 
 Requirements: Node, HandbrakeCLI & AtomicParsley
 
