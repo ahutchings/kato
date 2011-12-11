@@ -12,12 +12,15 @@ var optimist = require('optimist').demand(1).usage('Usage: $0 file_or_directory.
     finder = require('findit'),
     encoder = require('../lib/kato.js');
 
-var argv = optimist.boolean(['a','overwrite']).options({
+var argv = optimist.boolean(['a','c','overwrite']).options({
   a: {
-    description: 'Atomify mode. Pass in existing mp4 files to have their metadata refreshed and persisted.'
+    description: 'Atomify mode. Pass in existing mp4 files to have\n               their metadata refreshed and persisted.'
+  },
+  c: {
+    description: 'Cleanup mode. Remove source files and move outfiles to iTunes.'
   },
   overwrite: {
-    description: 'Process files even if an existing outfile already exists. Overwrite existing outfile.'
+    description: 'Process files even if an existing outfile already\n               exists. Overwrite existing outfile.'
   }
   //,
   //n: {
@@ -158,24 +161,36 @@ function queueContents(dir) {
   });
 }
 
-function fileOrDir(path) {
+function fileOrDir(path, fileFunc, dirFunc) {
   fs.stat(path, function (err, stats) {
     if (err) throw err;
-
-    if (stats.isFile()) queueUp(path);
-    else if (stats.isDirectory()) {
-      queueContents(path);
-      watchDir(path);
-    } else winston.warn("Neither file nor directory: " + path);
+    if (stats.isFile()) fileFunc(path);
+    else if (stats.isDirectory()) dirFunc(path);
+    else winston.warn("Neither file nor directory: " + path);
   });
+}
+
+function processFile(path) {
+  queueUp(path);
+}
+function processDir(path) {
+  queueContents(path);
+  watchDir(path);      
+}
+function cleanupFile(path) {
+  // add file to remove list or itunes depending on ext
+}
+function cleanupDir(path) {
+  // check contents of dir for files to move or remove
 }
 
 for (var i in argv._) {
   if (argv.a) {
     winston.info("queueing up " + argv._[i]);
     manager.enqueue('atomify',argv._[i]);
-    continue;
+  } else if (argv.c) {
+    fileOrDir(argv._[i], cleanupFile, cleanupDir);
+  } else {
+    fileOrDir(argv._[i], processFile, processDir);
   }
-  
-  fileOrDir(argv._[i]);
 }
