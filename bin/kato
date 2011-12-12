@@ -133,9 +133,9 @@ function queueUp( file ) {
 
 function watchDir( watch_dir) {
   watch.watchTree(watch_dir, function (file, curr, prev) {
-    if (ignore[file]) return;
-    else ignore[file] = true;
-  
+    if (ignore[watch_dir]) return;
+    else ignore[watch_dir] = true;
+    
     if (typeof file == "object" && prev === null && curr === null) {
       // Finished walking the tree
       winston.info("watching " + watch_dir);
