@@ -13,6 +13,7 @@ Requirements: Node, HandbrakeCLI & AtomicParsley
 
 # Todo
 
+* Vows tests?
 * Provide function to remove source files (avi's & mkv's) and move outfiles (mp4's) to iTunes
   * Option to indicate eps to archive?
   * Option to specify different iTunes destinations for particular shows?
