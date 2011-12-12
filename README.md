@@ -16,6 +16,8 @@ Requirements: Node, HandbrakeCLI & AtomicParsley
 * Provide function to remove source files (avi's & mkv's) and move outfiles (mp4's) to iTunes
   * Option to indicate eps to archive?
   * Option to specify different iTunes destinations for particular shows?
+* Config
+  * On first run of kato, ask config questions and write dotfile
 * Handle multi episode files (eg. "Green Lantern The Animated Series S01E01-02 Beware My Power.avi")
   * Include description for both episodes in the file
   * Update video "name" to include multi ep indicator (eg. "S01E01-02 Beware My Power"))
