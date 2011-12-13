@@ -10,7 +10,7 @@ var optimist = require('optimist').demand(1).usage('Usage: $0 file_or_directory.
     fs = require('fs'),
     path = require('path'),
     finder = require('findit'),
-    encoder = require('../lib/kato.js');
+    kato = require('../lib/kato.js');
 
 var argv = optimist.boolean(['a','c','overwrite']).options({
   a: {
@@ -50,7 +50,7 @@ manager.addJob('atomify', {
   concurrency: 1,
   work: function(file) {
     var self = this;
-    encoder.atomify(file, function(file) {
+    kato.atomify(file, function(file) {
       self.finished = true;
     });
   }
@@ -61,7 +61,7 @@ manager.addJob('transcode', {
   work: function (file) {
     winston.info("processing: " + file);
     var self = this;
-    var ofile = encoder.outFile(file);
+    var ofile = kato.outFile(file);
     ignore[ofile] = true;
     hb = spawn('HandBrakeCLI', ['-Z', "'iPhone4'", '-i', file, '-o', ofile]);
     hb.stdout.on('data', function (data) {
@@ -91,7 +91,7 @@ manager.addJob('transcode', {
 });
 manager.on('finish', function (job, worker) {
   if(job.name == 'atomify') {
-    setTimeout(unignore, 3000, encoder.outFile(worker.args[0]));
+    setTimeout(unignore, 3000, kato.outFile(worker.args[0]));
   } else if(job.name == 'transcode') {
     delete(ignore[worker.args[0]]);
   }
@@ -115,7 +115,7 @@ function queueUp( file ) {
 
   if( valid ) {
     winston.info("queueing: " + file);
-    path.exists(encoder.outFile(file), function (exists) {
+    path.exists(kato.outFile(file), function (exists) {
       if (!exists) manager.enqueue('transcode',file);
       else if (argv.overwrite) {
         winston.info("overwriting existing outfile");
