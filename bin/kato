@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
-var optimist = require('optimist').demand(1).usage('Usage: $0 file_or_directory...'),
+var async = require('async'),
+    optimist = require('optimist').demand(1).usage('Usage: $0 file_or_directory...'),
     winston = require('winston').cli(),
     watch = require('watch'),
     neuron = require('neuron'),
@@ -102,7 +103,7 @@ function unignore(file) {
   //winston.info("unignore " + file);
 }
 
-function queueUp( file ) {
+function queueUp( file, callback ) {
   //cliff.putObject(file);
 
   var valid = false;
@@ -124,10 +125,13 @@ function queueUp( file ) {
         winston.info("skipped. outfile already exists.");
         delete(ignore[file]);
       }
+      
+      if (callback) callback();
     });
   } else {
     //winston.info("invalid file. doesn't match: " + valid_patterns);
     delete(ignore[file]);
+    if (callback) callback();
   }
 }
 
@@ -161,36 +165,47 @@ function queueContents(dir) {
   });
 }
 
-function fileOrDir(path, fileFunc, dirFunc) {
+function fileOrDir(path, fileFunc, dirFunc, callback) {
   fs.stat(path, function (err, stats) {
     if (err) throw err;
-    if (stats.isFile()) fileFunc(path);
-    else if (stats.isDirectory()) dirFunc(path);
+    if (stats.isFile()) fileFunc(path, callback);
+    else if (stats.isDirectory()) dirFunc(path, callback);
     else winston.warn("Neither file nor directory: " + path);
   });
 }
 
-function processFile(path) {
-  queueUp(path);
+function processFile(path, callback) {
+  queueUp(path, callback);
 }
-function processDir(path) {
+function processDir(path, callback) {
   queueContents(path);
   watchDir(path);      
 }
-function cleanupFile(path) {
+function cleanupFile(path, callback) {
   // add file to remove list or itunes depending on ext
 }
-function cleanupDir(path) {
+function cleanupDir(path, callback) {
   // check contents of dir for files to move or remove
 }
 
-for (var i in argv._) {
-  if (argv.a) {
-    winston.info("queueing up " + argv._[i]);
-    manager.enqueue('atomify',argv._[i]);
-  } else if (argv.c) {
-    fileOrDir(argv._[i], cleanupFile, cleanupDir);
-  } else {
-    fileOrDir(argv._[i], processFile, processDir);
+if (argv.c) {
+  var removes = [], moves = [];
+  async.forEach(argv._, function(item, callback) {
+    //iterator
+    
+  }, function(err) {
+    // final cb
+    if (err) throw err;
+    
+    
+  });
+} else {
+  for (var i in argv._) {
+    if (argv.a) {
+      winston.info("queueing up " + argv._[i]);
+      manager.enqueue('atomify',argv._[i]);
+    } else {
+      fileOrDir(argv._[i], processFile, processDir);
+    }
   }
 }
