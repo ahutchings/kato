@@ -67,11 +67,11 @@ manager.addJob('transcode', {
     hb.stdout.on('data', function (data) {
       winston.info('stdout: ' + (String(data)).replace(/(\n|\r)+$/, ''));
     });
-    
+
     hb.stderr.on('data', function (data) {
       console.log((String(data)).replace(/(\n|\r)+$/, ''));
     });
-    
+
     hb.on('exit', function (code) {
       manager.enqueue('atomify',ofile);
       self.finished = true;
@@ -79,7 +79,7 @@ manager.addJob('transcode', {
     //exec('HandBrakeCLI -Z \'iPhone 4\' -i \"'+file+'\" -o \"'+ofile+'\"', function (error, stdout, stderr) {
     ////exec('ls -la ' + file, function (error, stdout, stderr) {
     //  if (error) throw error;
-    //  
+    //
     //  manager.enqueue('atomify',ofile);
     //
     //  //
@@ -135,7 +135,6 @@ function watchDir( watch_dir) {
 	if (ignore[watch_dir]) return;
 	else ignore[watch_dir] = true;
   watch.watchTree(watch_dir, function (file, curr, prev) {
-    
     if (typeof file == "object" && prev === null && curr === null) {
       // Finished walking the tree
       winston.info("watching " + watch_dir);
@@ -155,8 +154,9 @@ function queueContents(dir) {
   finder.find(dir, function (file) {
     fs.stat(file, function (err, stats) {
       if (err) throw err;
-      
-      if (stats.isFile()) queueUp(file.replace('//', '/'));
+      if (stats.isFile()) {
+        queueUp(file.replace('//', '/'));
+      }
     });
   });
 }
@@ -175,7 +175,7 @@ function processFile(path) {
 }
 function processDir(path) {
   queueContents(path);
-  watchDir(path);      
+  watchDir(path);
 }
 function cleanupFile(path) {
   // add file to remove list or itunes depending on ext
