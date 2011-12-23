@@ -67,26 +67,13 @@ manager.addJob('transcode', {
     hb.stdout.on('data', function (data) {
       winston.info('stdout: ' + (String(data)).replace(/(\n|\r)+$/, ''));
     });
-
     hb.stderr.on('data', function (data) {
       console.log((String(data)).replace(/(\n|\r)+$/, ''));
     });
-
     hb.on('exit', function (code) {
       manager.enqueue('atomify',ofile);
       self.finished = true;
     });
-    //exec('HandBrakeCLI -Z \'iPhone 4\' -i \"'+file+'\" -o \"'+ofile+'\"', function (error, stdout, stderr) {
-    ////exec('ls -la ' + file, function (error, stdout, stderr) {
-    //  if (error) throw error;
-    //
-    //  manager.enqueue('atomify',ofile);
-    //
-    //  //
-    //  // Finish the job, this will notify the manager.
-    //  //
-    //  self.finished = true;
-    //});
   }
 });
 manager.on('finish', function (job, worker) {
