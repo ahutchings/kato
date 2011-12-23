@@ -64,7 +64,7 @@ manager.addJob('transcode', {
     var self = this;
     var ofile = kato.outFile(file);
     ignore[ofile] = true;
-    hb = spawn('HandBrakeCLI', ['-Z', "'iPhone4'", '-i', file, '-o', ofile]);
+    hb = spawn('HandBrakeCLI', ['-Z', "iPhone 4", '-i', file, '-o', ofile]);
     hb.stdout.on('data', function (data) {
       winston.info('stdout: ' + (String(data)).replace(/(\n|\r)+$/, ''));
     });
