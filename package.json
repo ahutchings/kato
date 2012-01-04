@@ -12,7 +12,8 @@
     "watch": ">=0.3.0",
     "neuron": ">=0.4.x",
     "findit": ">=0.1.x",
-    "cliff": ">=0.1.x"
+    "cliff": ">=0.1.x",
+    "prompt": ">=0.1.12"
   },
   "bin": {
     "kato": "./bin/kato"

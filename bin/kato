@@ -10,13 +10,17 @@ var async = require('async'),
     fs = require('fs'),
     path = require('path'),
     finder = require('findit'),
+    prompt = require('prompt'),
     kato = require('../lib/kato.js');
 
-var argv = optimist.boolean(['a','c','overwrite']).options({
+var ITUNES = "/Users/saadiq/Music/iTunes/iTunes Music/Automatically Add to iTunes";
+ITUNES = "/Users/saadiq/tmp_itunes";
+
+var argv = optimist.boolean(['a','cleanup','overwrite']).options({
   a: {
     description: 'Atomify mode. Pass in existing mp4 files to have\n               their metadata refreshed and persisted.'
   },
-  c: {
+  cleanup: {
     description: 'Cleanup mode. Remove source files and move outfiles to iTunes.'
   },
   overwrite: {
@@ -201,14 +205,63 @@ function cleanupDir(path, callback) {
   });
 }
 
-if (argv.c) {
+function throwErr(err) {
+  if (err) throw err;
+}
+
+function promptAndProcess() {
+  var objs = [];
+  for( var i = 0; i < move.length; i++) {
+    objs.push({
+                name: i +'',
+                message: move[i] + "? " + "[y/n/s]".cyan,
+                validator: /^[yns]$/i,
+                default: 'y'
+              });
+  }
+  prompt.start();
+  prompt.message = "move".magenta;
+  prompt.get(objs, function(err, result){
+    //cliff.putObject(result);
+
+    for( i = 0; i < move.length; i++) {
+      if(result[i] == 'y'){
+        winston.info("moving " + move[i]);
+        fs.rename(move[i], ITUNES +'/'+ path.basename(move[i]), throwErr);
+      }
+    }
+
+    prompt.message = "remove".red;
+    objs = [];
+    for( i = 0; i < remove.length; i++) {
+      objs.push({
+                  name: i +'',
+                  message: remove[i] + "? " + "[y/n/s]".cyan,
+                  validator: /^[yns]$/i,
+                  default: 'y'
+                });
+    }
+    prompt.get(objs, function(err, result){
+      //cliff.putObject(result);
+      for( i = 0; i < remove.length; i++) {
+        if(result[i] == 'y'){
+          winston.info("removing " + remove[i]);
+          fs.unlink(remove[i], throwErr);
+        }
+      }
+    });
+  });
+}
+
+if (argv.cleanup) {
   var remove = [], move = [];
   async.forEach(argv._, function(item, callback) {
     fileOrDir(item, cleanupFile, cleanupDir, callback);
   }, function(err) {
     if (err) throw err;
-    cliff.putObject(move);
-    cliff.putObject(remove);
+    move.sort();
+    remove.sort();
+    promptAndProcess();
   });
 } else {
   for (var i in argv._) {
