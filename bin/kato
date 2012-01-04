@@ -111,7 +111,7 @@ function queueUp( file, callback ) {
         winston.info("skipped. outfile already exists.");
         delete(ignore[file]);
       }
-      
+
       if (callback) callback();
     });
   } else {
@@ -162,28 +162,53 @@ function fileOrDir(path, fileFunc, dirFunc, callback) {
 
 function processFile(path, callback) {
   queueUp(path, callback);
+  if (callback) callback();
 }
 function processDir(path, callback) {
   queueContents(path);
   watchDir(path);
+  if (callback) callback();
 }
 function cleanupFile(path, callback) {
-  // add file to remove list or itunes depending on ext
+  // add file to move or remove list
+  if (path.match(/\.mp4$/)){
+    move.push(path);
+  } else if (path.match(/\.nfo$/) && !path.match(/tvshow\.nfo$/)){
+    remove.push(path);
+  } else {
+    for( var x in valid_patterns) {
+      if( path.match( valid_patterns[x]) ) {
+        remove.push(path);
+      }
+    }
+  }
+  if(callback) callback();
 }
 function cleanupDir(path, callback) {
   // check contents of dir for files to move or remove
+  var files = finder.sync(path);
+  async.forEach(files, function(file, cb2) {
+    fs.stat(file, function (err, stats) {
+      if (err) throw err;
+      if (stats.isFile()) {
+        cleanupFile(file.replace('//', '/'), cb2);
+      } else {
+        cb2();
+      }
+    });
+  }, function(err) {
+    if(callback) callback();
+  });
 }
 
 if (argv.c) {
-  var removes = [], moves = [];
+  var remove = [], move = [];
   async.forEach(argv._, function(item, callback) {
-    //iterator
-    
+    fileOrDir(item, cleanupFile, cleanupDir, callback);
   }, function(err) {
-    // final cb
     if (err) throw err;
-    
-    
+    cliff.putObject(move);
+    cliff.putObject(remove);
   });
 } else {
   for (var i in argv._) {
