@@ -13,8 +13,7 @@ var async = require('async'),
     prompt = require('prompt'),
     kato = require('../lib/kato.js');
 
-var ITUNES = "/Users/saadiq/Music/iTunes/iTunes Music/Automatically Add to iTunes";
-ITUNES = "/Users/saadiq/tmp_itunes";
+var ITUNES = "/Users/saadiq/Music/iTunes/iTunes Media/Automatically Add to iTunes.localized";
 
 var argv = optimist.boolean(['a','cleanup','overwrite']).options({
   a: {
