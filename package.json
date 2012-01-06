@@ -1,7 +1,7 @@
 {
   "name": "kato",
   "description": "Swiss army knife for converting video files to iTunes-friendly format",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "homepage": "http://github.com/saadiq/kato",
   "author": "Saadiq Rodgers-King <saadiq@gmail.com>",
   "dependencies": {
