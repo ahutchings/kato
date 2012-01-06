@@ -3,17 +3,11 @@
 var async = require('async'),
     optimist = require('optimist').demand(1).usage('Usage: $0 file_or_directory...'),
     winston = require('winston').cli(),
-    watch = require('watch'),
-    neuron = require('neuron'),
-    spawn = require('child_process').spawn,
     cliff = require('cliff'),
-    fs = require('fs'),
-    path = require('path'),
-    finder = require('findit'),
-    prompt = require('prompt'),
-    kato = require('../lib/kato.js');
-
-var ITUNES = "/Users/saadiq/Music/iTunes/iTunes Media/Automatically Add to iTunes.localized";
+    atomify = require('../lib/atomify.js'),
+    cleanup = require('../lib/cleanup.js'),
+    kutil = require('../lib/kutil.js'),
+    queue = require('../lib/queue.js');
 
 var argv = optimist.boolean(['a','cleanup','overwrite']).options({
   a: {
@@ -40,235 +34,15 @@ if (argv.h || argv.help) {
   return;
 }
 
-var ignore = {};
-var valid_patterns = [/\.avi$/i,/\.mkv$/i];
-
-//cliff.putObject(argv);
-
-//
-// Create the manager and set the job.
-//
-var manager = new neuron.JobManager();
-manager.addJob('atomify', {
-  concurrency: 1,
-  work: function(file) {
-    var self = this;
-    kato.atomify(file, function(file) {
-      self.finished = true;
-    });
-  }
-});
-manager.addJob('transcode', {
-  //dirname: __dirname,
-  concurrency: 1,
-  work: function (file) {
-    winston.info("processing: " + file);
-    var self = this;
-    var ofile = kato.outFile(file);
-    ignore[ofile] = true;
-    hb = spawn('HandBrakeCLI', ['-Z', "iPhone 4", '-i', file, '-o', ofile]);
-    hb.stdout.on('data', function (data) {
-      winston.info('stdout: ' + (String(data)).replace(/(\n|\r)+$/, ''));
-    });
-    hb.stderr.on('data', function (data) {
-      console.log((String(data)).replace(/(\n|\r)+$/, ''));
-    });
-    hb.on('exit', function (code) {
-      manager.enqueue('atomify',ofile);
-      self.finished = true;
-    });
-  }
-});
-manager.on('finish', function (job, worker) {
-  if(job.name == 'atomify') {
-    setTimeout(unignore, 3000, kato.outFile(worker.args[0]));
-  } else if(job.name == 'transcode') {
-    delete(ignore[worker.args[0]]);
-  }
-});
-
-function unignore(file) {
-  delete(ignore[file]);
-  //winston.info("unignore " + file);
-}
-
-function queueUp( file, callback ) {
-  //cliff.putObject(file);
-
-  var valid = false;
-  for( var x in valid_patterns) {
-    if( file.match( valid_patterns[x]) ) {
-      valid = true;
-      break;
-    }
-  }
-
-  if( valid ) {
-    winston.info("queueing: " + file);
-    path.exists(kato.outFile(file), function (exists) {
-      if (!exists) manager.enqueue('transcode',file);
-      else if (argv.overwrite) {
-        winston.info("overwriting existing outfile");
-        manager.enqueue('transcode',file);
-      } else {
-        winston.info("skipped. outfile already exists.");
-        delete(ignore[file]);
-      }
-
-      if (callback) callback();
-    });
-  } else {
-    //winston.info("invalid file. doesn't match: " + valid_patterns);
-    delete(ignore[file]);
-    if (callback) callback();
-  }
-}
-
-function watchDir( watch_dir) {
-	if (ignore[watch_dir]) return;
-	else ignore[watch_dir] = true;
-  watch.watchTree(watch_dir, function (file, curr, prev) {
-    if (typeof file == "object" && prev === null && curr === null) {
-      // Finished walking the tree
-      winston.info("watching " + watch_dir);
-    } else if (prev === null) {
-      // f is a new file
-      queueUp(file);
-    } else if (curr.nlink === 0) {
-      // f was removed
-    } else {
-      // f was changed
-      //queueUp(file);
-    }
-  });
-}
-
-function queueContents(dir) {
-  finder.find(dir, function (file) {
-    fs.stat(file, function (err, stats) {
-      if (err) throw err;
-      if (stats.isFile()) {
-        queueUp(file.replace('//', '/'));
-      }
-    });
-  });
-}
-
-function fileOrDir(path, fileFunc, dirFunc, callback) {
-  fs.stat(path, function (err, stats) {
-    if (err) throw err;
-    if (stats.isFile()) fileFunc(path, callback);
-    else if (stats.isDirectory()) dirFunc(path, callback);
-    else winston.warn("Neither file nor directory: " + path);
-  });
-}
-
-function processFile(path, callback) {
-  queueUp(path, callback);
-  if (callback) callback();
-}
-function processDir(path, callback) {
-  queueContents(path);
-  watchDir(path);
-  if (callback) callback();
-}
-function cleanupFile(path, callback) {
-  // add file to move or remove list
-  if (path.match(/\.mp4$/)){
-    move.push(path);
-  } else if (path.match(/\.nfo$/) && !path.match(/tvshow\.nfo$/)){
-    remove.push(path);
-  } else {
-    for( var x in valid_patterns) {
-      if( path.match( valid_patterns[x]) ) {
-        remove.push(path);
-      }
-    }
-  }
-  if(callback) callback();
-}
-function cleanupDir(path, callback) {
-  // check contents of dir for files to move or remove
-  var files = finder.sync(path);
-  async.forEach(files, function(file, cb2) {
-    fs.stat(file, function (err, stats) {
-      if (err) throw err;
-      if (stats.isFile()) {
-        cleanupFile(file.replace('//', '/'), cb2);
-      } else {
-        cb2();
-      }
-    });
-  }, function(err) {
-    if(callback) callback();
-  });
-}
-
-function throwErr(err) {
-  if (err) throw err;
-}
-
-function promptAndProcess() {
-  var objs = [];
-  for( var i = 0; i < move.length; i++) {
-    objs.push({
-                name: i +'',
-                message: move[i] + "? " + "[y/n/s]".cyan,
-                validator: /^[yns]$/i,
-                default: 'y'
-              });
-  }
-  prompt.start();
-  prompt.message = "move".magenta;
-  prompt.get(objs, function(err, result){
-    //cliff.putObject(result);
-
-    for( i = 0; i < move.length; i++) {
-      if(result[i] == 'y'){
-        winston.info("moving " + move[i]);
-        fs.rename(move[i], ITUNES +'/'+ path.basename(move[i]), throwErr);
-      }
-    }
-
-    prompt.message = "remove".red;
-    objs = [];
-    for( i = 0; i < remove.length; i++) {
-      objs.push({
-                  name: i +'',
-                  message: remove[i] + "? " + "[y/n/s]".cyan,
-                  validator: /^[yns]$/i,
-                  default: 'y'
-                });
-    }
-    prompt.get(objs, function(err, result){
-      //cliff.putObject(result);
-      for( i = 0; i < remove.length; i++) {
-        if(result[i] == 'y'){
-          winston.info("removing " + remove[i]);
-          fs.unlink(remove[i], throwErr);
-        }
-      }
-    });
-  });
-}
 
 if (argv.cleanup) {
-  var remove = [], move = [];
-  async.forEach(argv._, function(item, callback) {
-    fileOrDir(item, cleanupFile, cleanupDir, callback);
-  }, function(err) {
-    if (err) throw err;
-    move.sort();
-    remove.sort();
-    promptAndProcess();
-  });
+  cleanup.run(argv._);
 } else {
   for (var i in argv._) {
     if (argv.a) {
-      winston.info("queueing up " + argv._[i]);
-      manager.enqueue('atomify',argv._[i]);
+      queue.atomify(argv._[i]);
     } else {
-      fileOrDir(argv._[i], processFile, processDir);
+      queue.transcode(argv._[i]);
     }
   }
 }
