@@ -13,7 +13,8 @@
     "neuron": ">=0.4.x",
     "findit": ">=0.1.x",
     "cliff": ">=0.1.x",
-    "prompt": ">=0.1.12"
+    "prompt": ">=0.1.12",
+    "nconf": ">=0.5.1"
   },
   "bin": {
     "kato": "./bin/kato"

@@ -2,8 +2,12 @@
 
 var async = require('async'),
     optimist = require('optimist').demand(1).usage('Usage: $0 file_or_directory...'),
+    nconf = require('nconf'),
     winston = require('winston').cli(),
     cliff = require('cliff'),
+    fs = require('fs'),
+    path = require('path'),
+    prompt = require('prompt'),
     atomify = require('../lib/atomify.js'),
     cleanup = require('../lib/cleanup.js'),
     kutil = require('../lib/kutil.js'),
@@ -19,10 +23,6 @@ var argv = optimist.boolean(['a','cleanup','overwrite']).options({
   overwrite: {
     description: 'Process files even if an existing outfile already\n               exists. Overwrite existing outfile.'
   }
-  //,
-  //n: {
-  //  description: 'Don\'t actually do anything. This is just a test run.'
-  //}
 }).argv;
 
 if (argv.h || argv.help) {
@@ -34,8 +34,37 @@ if (argv.h || argv.help) {
   return;
 }
 
+var obj = [{
+            name: 'itunes_auto_dir',
+            message: 'Where should files be moved for iTunes?'
+            },{
+              name: 'sickbeard_dir',
+              message: 'Where is Sick Beard installed?'
+            },{
+              name: 'couchpotato_dir',
+              message: 'Where is CouchPotato installed?'
+            }];
 
-if (argv.cleanup) {
+nconf.file({ file: kutil.config_file});
+nconf.load();
+
+if( !path.existsSync(kutil.config_file) ) {
+  winston.info("Config mode");
+  prompt.start();
+  prompt.get(obj, function(err, result){
+    if(err) throw err;
+    cliff.putObject(result);
+    nconf.set('itunes_auto_dir', result.itunes_auto_dir);
+    nconf.set('sickbeard_dir', result.sickbeard_dir);
+    nconf.set('couchpotato_dir', result.couchpotato_dir);
+    nconf.save(function (err) {
+     if (err) throw err;
+     console.log('Config saved successfully.');
+    });
+  });
+}
+
+else if (argv.cleanup) {
   cleanup.run(argv._);
 } else {
   for (var i in argv._) {
