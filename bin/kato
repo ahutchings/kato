@@ -54,8 +54,12 @@ if( !path.existsSync(kutil.config_file) ) {
   prompt.get(obj, function(err, result){
     if(err) throw err;
     cliff.putObject(result);
+    //ITUNES = "/Users/saadiq/Music/iTunes/iTunes Media/Automatically Add to iTunes.localized";
+    //ITUNES = "/Users/saadiq/Music/iTunes/iTunes Music/Automatically Add to iTunes";
     nconf.set('itunes_auto_dir', result.itunes_auto_dir);
+    //SB_PATH = '/Users/saadiq/dev/Sick-Beard',
     nconf.set('sickbeard_dir', result.sickbeard_dir);
+    //COUCH_PATH = '/Users/saadiq/dev/CouchPotato',
     nconf.set('couchpotato_dir', result.couchpotato_dir);
     nconf.save(function (err) {
      if (err) throw err;
