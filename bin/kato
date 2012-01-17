@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 var async = require('async'),
-    optimist = require('optimist').demand(1).usage('Usage: $0 file_or_directory...'),
+    optimist = require('optimist').usage('Usage: $0 file_or_directory...'),
     nconf = require('nconf'),
     winston = require('winston').cli(),
     cliff = require('cliff'),
@@ -10,15 +10,19 @@ var async = require('async'),
     prompt = require('prompt'),
     atomify = require('../lib/atomify.js'),
     cleanup = require('../lib/cleanup.js'),
+    config = require('../lib/config.js'),
     kutil = require('../lib/kutil.js'),
     queue = require('../lib/queue.js');
 
-var argv = optimist.boolean(['atomify','cleanup','overwrite']).options({
+var argv = optimist.boolean(['atomify','cleanup','config','overwrite', 'h', 'help']).options({
   atomify: {
     description: 'Atomify mode. Pass in existing mp4 files to have\n               their metadata refreshed and persisted.'
   },
   cleanup: {
     description: 'Cleanup mode. Remove source files and move outfiles to iTunes.'
+  },
+  config: {
+    description: 'Config mode. Set environment defaults and preferences.'
   },
   overwrite: {
     description: 'Overwrite mode. Process files even if an existing outfile\n               already exists. Overwrite existing outfile.'
@@ -34,41 +38,9 @@ if (argv.h || argv.help) {
   return;
 }
 
-var obj = [{
-            name: 'itunes_auto_dir',
-            message: 'Where should files be moved for iTunes?'
-            },{
-              name: 'sickbeard_dir',
-              message: 'Where is Sick Beard installed?'
-            },{
-              name: 'couchpotato_dir',
-              message: 'Where is CouchPotato installed?'
-            }];
-
-nconf.file({ file: kutil.config_file});
-nconf.load();
-
-if( !path.existsSync(kutil.config_file) ) {
-  winston.info("Config mode");
-  prompt.start();
-  prompt.get(obj, function(err, result){
-    if(err) throw err;
-    cliff.putObject(result);
-    //ITUNES = "/Users/saadiq/Music/iTunes/iTunes Media/Automatically Add to iTunes.localized";
-    //ITUNES = "/Users/saadiq/Music/iTunes/iTunes Music/Automatically Add to iTunes";
-    nconf.set('itunes_auto_dir', result.itunes_auto_dir);
-    //SB_PATH = '/Users/saadiq/dev/Sick-Beard',
-    nconf.set('sickbeard_dir', result.sickbeard_dir);
-    //COUCH_PATH = '/Users/saadiq/dev/CouchPotato',
-    nconf.set('couchpotato_dir', result.couchpotato_dir);
-    nconf.save(function (err) {
-     if (err) throw err;
-     console.log('Config saved successfully.');
-    });
-  });
-}
-
-else if (argv.cleanup) {
+if( argv.config || config.required() ) {
+  config.run();
+} else if (argv.cleanup) {
   cleanup.run(argv._);
 } else {
   for (var i in argv._) {
