@@ -13,7 +13,9 @@ Requirements: Node, HandbrakeCLI & AtomicParsley
 
 # Todo
 
-* enable option for auto-cleanup after transcode and atomify
+* cleanup updates
+  * enable option for auto-cleanup after transcode and atomify
+  * add lsof check to make sure not cleaning files currently being processed
 * parse .nfo files using xml2js and remove sqlite queries
 * Handle multi episode files (eg. "Green Lantern The Animated Series S01E01-02 Beware My Power.avi")
   * Include description for both episodes in the file
