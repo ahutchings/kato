@@ -1,42 +1,41 @@
 #!/usr/bin/env node
 
 var async = require('async'),
-    optimist = require('optimist').usage('Usage: $0 file_or_directory...'),
-    nconf = require('nconf'),
-    winston = require('winston').cli(),
-    cliff = require('cliff'),
     fs = require('fs'),
     path = require('path'),
-    prompt = require('prompt'),
+    flatiron = require('flatiron'),
+    app = flatiron.app,
     atomify = require('../lib/atomify.js'),
     cleanup = require('../lib/cleanup.js'),
     config = require('../lib/config.js'),
     kutil = require('../lib/kutil.js'),
     queue = require('../lib/queue.js');
 
-var argv = optimist.boolean(['atomify','cleanup','config','overwrite', 'h', 'help']).options({
-  atomify: {
-    description: 'Atomify mode. Pass in existing mp4 files to have\n               their metadata refreshed and persisted.'
+app.use(flatiron.plugins.cli, {
+  argv: {
+    atomify: {
+      boolean: true,
+      description: 'Atomify mode. Pass in existing mp4 files to have\n               their metadata refreshed and persisted.'
+    },
+    cleanup: {
+      boolean: true,
+      description: 'Cleanup mode. Remove source files and move outfiles to iTunes.'
+    },
+    config: {
+      boolean: true,
+      description: 'Config mode. Set environment defaults and preferences.'
+    },
+    overwrite: {
+      boolean: true,
+      description: 'Overwrite mode. Process files even if an existing outfile\n               already exists. Overwrite existing outfile.'
+    }
   },
-  cleanup: {
-    description: 'Cleanup mode. Remove source files and move outfiles to iTunes.'
-  },
-  config: {
-    description: 'Config mode. Set environment defaults and preferences.'
-  },
-  overwrite: {
-    description: 'Overwrite mode. Process files even if an existing outfile\n               already exists. Overwrite existing outfile.'
-  }
-}).argv;
+  usage: 'kato: Swiss army knife for converting video files to iTunes-friendly format'
+});
 
-if (argv.h || argv.help) {
-  console.log([
-    'kato: Swiss army knife for converting video files to iTunes-friendly format',
-    ''
-  ].join('\n'));
-  console.log(optimist.help());
-  return;
-}
+app.use(require('flatiron-cli-config'), {
+  store: file
+});
 
 if( argv.config || config.required() ) {
   config.run();
